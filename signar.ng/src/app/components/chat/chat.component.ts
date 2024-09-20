@@ -47,31 +47,46 @@ export class ChatComponent  {
     });
 
     // TODO: Écouter le message pour mettre à jour la liste de channels
+    this.hubConnection.on('ChannelList', (data)=> {
+      this.channelsList = data;
+    });
 
-    this.hubConnection.on('NewMessage', (message) => {
+    this.hubConnection.on('newMessage', (message) => {
       this.messages.push(message);
     });
 
     // TODO: Écouter le message pour quitter un channel (lorsque le channel est effacé)
-
+    this.hubConnection.on('ChannelSupprime',(data)=>{
+      this.channelsList = data;
+    });
+    this.hubConnection.on('messageDepart',(message)=>{
+      this.messages.push(message);
+    });
+    this.hubConnection.on('messageArrive',(message)=>{
+      this.messages.push(message)
+    });
     // On se connecte au Hub
     this.hubConnection
       .start()
       .then(() => {
         this.isConnectedToHub = true;
       })
-      .catch(err => console.log('Error while starting connection: ' + err))
+      .catch(err => console.log('Error while starting connection: ' + err));
+
+      
   }
 
   joinChannel(channel: Channel) {
     let selectedChannelId = this.selectedChannel ? this.selectedChannel.id : 0;
     this.hubConnection!.invoke('JoinChannel', selectedChannelId, channel.id);
     this.selectedChannel = channel;
+
   }
 
   sendMessage() {
     let selectedChannelId = this.selectedChannel ? this.selectedChannel.id : 0;
     this.hubConnection!.invoke('SendMessage', this.message, selectedChannelId, this.selectedUser?.value);
+    
   }
 
   userClick(user:UserEntry) {
@@ -82,10 +97,13 @@ export class ChatComponent  {
 
   createChannel(){
     // TODO: Ajouter un invoke
+    this.hubConnection!.invoke('CreateChannel',this.newChannelName);
   }
 
   deleteChannel(channel: Channel){
     // TODO: Ajouter un invoke
+    this.hubConnection!.invoke('DeleteChannel',channel.id);
+    this.hubConnection!.invoke('SendMessage', "le channel " + channel.title + " a été supprimé", -1,"-1");
   }
 
   leaveChannel(){
